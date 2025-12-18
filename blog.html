@@ -647,10 +647,12 @@
 <script>
     if (history.scrollRestoration) history.scrollRestoration = 'manual';
 
+    // --- DOM ELEMENTLERİ ---
     const listView = document.getElementById('blog-list-view');
     const singleView = document.getElementById('single-post-view');
     const gridContainer = document.getElementById('blog-grid-container');
     const paginationContainer = document.getElementById('pagination-container');
+    const scrollBtn = document.getElementById('scrollToTopBtn');
 
     const dTitle = document.getElementById('detail-title');
     const dCategory = document.getElementById('detail-category');
@@ -658,30 +660,40 @@
     const dReadTime = document.getElementById('detail-readtime');
     const dContent = document.getElementById('detail-content');
 
+    // --- DEĞİŞKENLER ---
     let blogPosts = [];
     let currentCategory = 'all';
     let currentPage = 1;
     const cardsPerPage = 6;
 
+    // --- SANITY AYARLARI ---
     const PROJECT_ID = "nsw3f9gk"; 
     const DATASET = "production";
     const QUERY = encodeURIComponent('*[_type == "post"] | order(_createdAt desc)');
-    // İsim karışıklığı olmasın diye ismi API_URL yaptık
     const API_URL = `https://${PROJECT_ID}.api.sanity.io/v2021-10-21/data/query/${DATASET}?query=${QUERY}`;
 
-    // Sanity'den gelen karmaşık metni HTML'e çevirir
+    // --- ZENGİN METİN ÇEVİRİCİ (Görselliği düzelten kısım) ---
     function blocksToHtml(blocks) {
         if (!blocks || !Array.isArray(blocks)) return "İçerik boş.";
         return blocks.map(block => {
-            if (block._type !== 'block' || !block.children) return '';
-            const text = block.children.map(child => child.text).join('');
-            return `<p style="margin-bottom:15px;">${text}</p>`;
+            if (block._type === 'block') {
+                const text = block.children.map(child => child.text).join('');
+                if (block.style === 'h2') return `<h2>${text}</h2>`;
+                if (block.style === 'h3') return `<h3>${text}</h3>`;
+                if (block.listItem === 'bullet') return `<li>${text}</li>`;
+                return `<p>${text}</p>`;
+            }
+            if (block._type === 'code') {
+                return `<pre><code>${block.code}</code></pre>`;
+            }
+            return '';
         }).join('');
     }
 
+    // --- VERİ ÇEKME ---
     async function initBlog() {
         try {
-            gridContainer.innerHTML = '<p style="color:#a1a1aa; text-align:center; grid-column: 1/-1;">Veriler çekiliyor...</p>';
+            gridContainer.innerHTML = '<p style="color:#a1a1aa; text-align:center; grid-column: 1/-1;">Veriler yükleniyor...</p>';
             const response = await fetch(API_URL);
             const data = await response.json();
 
@@ -689,11 +701,12 @@
                 blogPosts = data.result.map(post => ({
                     id: post.slug?.current || post._id,
                     title: post.title,
-                    category: 'siber-guvenlik',
-                    catDisplay: 'Siber Güvenlik',
+                    // Kategori Sanity'de yoksa 'all' olarak işaretle, filtreleme çalışsın
+                    category: post.category || 'siber-guvenlik', 
+                    catDisplay: post.catDisplay || 'Siber Güvenlik',
                     date: new Date(post._createdAt).toLocaleDateString('tr-TR'),
                     readTime: post.readTime || '5 dk',
-                    icon: post.icon || '📝',
+                    icon: post.icon || '💀',
                     excerpt: post.excerpt || '',
                     content: blocksToHtml(post.body)
                 }));
@@ -701,16 +714,66 @@
                 checkUrl();
             }
         } catch (error) {
-            console.error("Hata:", error);
-            gridContainer.innerHTML = '<p style="color:red; text-align:center;">Veri yükleme başarısız!</p>';
+            gridContainer.innerHTML = '<p style="color:red; text-align:center; grid-column: 1/-1;">Bağlantı Hatası!</p>';
         }
     }
 
+    // --- LİSTELEME VE FİLTRELEME ---
+    function renderList() {
+        const filtered = blogPosts.filter(p => currentCategory === 'all' || p.category === currentCategory);
+        const totalPages = Math.ceil(filtered.length / cardsPerPage);
+
+        const start = (currentPage - 1) * cardsPerPage;
+        const paginated = filtered.slice(start, start + cardsPerPage);
+
+        if (paginated.length > 0) {
+            gridContainer.innerHTML = paginated.map(post => `
+                <article class="blog-card" onclick="openPost('${post.id}')">
+                    <div class="blog-image">${post.icon}</div>
+                    <div class="blog-content">
+                        <div class="blog-category-tag">${post.catDisplay}</div>
+                        <h2 class="blog-title">${post.title}</h2>
+                        <p class="blog-excerpt">${post.excerpt}</p>
+                        <div class="blog-meta">
+                            <span>${post.date}</span>
+                            <span>${post.readTime}</span>
+                        </div>
+                    </div>
+                </article>
+            `).join('');
+        } else {
+            gridContainer.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#71717a;">Yazı bulunamadı.</p>';
+        }
+        renderPagination(totalPages);
+    }
+
+    // --- SAYFALAMA ---
+    function renderPagination(totalPages) {
+        if (totalPages <= 1) { paginationContainer.innerHTML = ''; return; }
+        
+        let html = `<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        }
+        html += `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
+        paginationContainer.innerHTML = html;
+    }
+
+    function changePage(newPage) {
+        gridContainer.classList.add('grid-fading');
+        setTimeout(() => {
+            currentPage = newPage;
+            renderList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            gridContainer.classList.remove('grid-fading');
+        }, 300);
+    }
+
+    // --- DETAY SAYFASI GEÇİŞLERİ ---
     function openPost(id) {
         const post = blogPosts.find(p => p.id === id);
         if (!post) return;
 
-        // Tarayıcının kendi URL özelliğini bozmadan adresi güncelliyoruz
         const currentUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?yazi=" + id;
         window.history.pushState({ path: currentUrl }, '', currentUrl);
 
@@ -720,46 +783,58 @@
         dReadTime.innerHTML = `<i class="fa-regular fa-clock"></i> ${post.readTime}`;
         dContent.innerHTML = post.content;
 
-        listView.classList.add('hidden');
-        singleView.classList.remove('hidden');
-        window.scrollTo(0, 0);
+        listView.classList.add('fade-out');
+        setTimeout(() => {
+            listView.classList.add('hidden');
+            listView.classList.remove('fade-out');
+            singleView.classList.remove('hidden');
+            singleView.classList.add('fade-in-start');
+            setTimeout(() => singleView.classList.remove('fade-in-start'), 50);
+            window.scrollTo(0, 0);
+        }, 300);
     }
 
     function closePost() {
         const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
         window.history.pushState({ path: cleanUrl }, '', cleanUrl);
-        singleView.classList.add('hidden');
-        listView.classList.remove('hidden');
-        window.scrollTo(0, 0);
+
+        singleView.classList.add('fade-out');
+        setTimeout(() => {
+            singleView.classList.add('hidden');
+            singleView.classList.remove('fade-out');
+            listView.classList.remove('hidden');
+            listView.classList.add('fade-in-start');
+            setTimeout(() => listView.classList.remove('fade-in-start'), 50);
+            window.scrollTo(0, 0);
+        }, 300);
     }
 
-    function renderList() {
-        const filtered = blogPosts.filter(p => currentCategory === 'all' || p.category === currentCategory);
-        const start = (currentPage - 1) * cardsPerPage;
-        const paginated = filtered.slice(start, start + cardsPerPage);
+    // --- FİLTRE BUTONLARI AKTİFLEŞTİRME ---
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCategory = btn.dataset.category;
+            currentPage = 1; // Filtre değişince başa dön
+            changePage(1);
+        };
+    });
 
-        gridContainer.innerHTML = paginated.map(post => `
-            <article class="blog-card" onclick="openPost('${post.id}')" style="cursor:pointer;">
-                <div class="blog-image">${post.icon}</div>
-                <div class="blog-content">
-                    <div class="blog-category-tag">${post.catDisplay}</div>
-                    <h2 class="blog-title">${post.title}</h2>
-                    <p class="blog-excerpt">${post.excerpt}</p>
-                    <div class="blog-meta">
-                        <span>${post.date}</span>
-                        <span>${post.readTime}</span>
-                    </div>
-                </div>
-            </article>
-        `).join('');
-    }
+    // --- YUKARI GİT BUTONU ---
+    window.onscroll = () => {
+        if (window.scrollY > 300) scrollBtn.classList.add('visible');
+        else scrollBtn.classList.remove('visible');
+    };
+    scrollBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    // --- URL KONTROLÜ ---
     function checkUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         const postId = urlParams.get('yazi');
         if (postId) openPost(postId);
     }
 
+    // --- BAŞLAT ---
     initBlog();
 </script>
 
