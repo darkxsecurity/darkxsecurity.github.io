@@ -647,7 +647,6 @@
 <script>
     if (history.scrollRestoration) history.scrollRestoration = 'manual';
 
-    // --- DOM ELEMENTLERİ ---
     const listView = document.getElementById('blog-list-view');
     const singleView = document.getElementById('single-post-view');
     const gridContainer = document.getElementById('blog-grid-container');
@@ -659,222 +658,109 @@
     const dReadTime = document.getElementById('detail-readtime');
     const dContent = document.getElementById('detail-content');
 
+    let blogPosts = [];
     let currentCategory = 'all';
     let currentPage = 1;
     const cardsPerPage = 6;
-    
-    // Veritabanı boş başlıyor, Sanity'den dolacak
-    let blogPosts = [];
 
-    // --- SANITY BAĞLANTISI ---
     const PROJECT_ID = "nsw3f9gk"; 
     const DATASET = "production";
-    // Sorgu: Yazıları tarihe göre tersten sırala
-    const QUERY = encodeURIComponent('*[_type == "post"] | order(_createdAt desc) { _id, title, slug, icon, readTime, excerpt, body, _createdAt }');
-    const URL = `https://${PROJECT_ID}.api.sanity.io/v2021-10-21/data/query/${DATASET}?query=${QUERY}`;
+    const QUERY = encodeURIComponent('*[_type == "post"] | order(_createdAt desc)');
+    // İsim karışıklığı olmasın diye ismi API_URL yaptık
+    const API_URL = `https://${PROJECT_ID}.api.sanity.io/v2021-10-21/data/query/${DATASET}?query=${QUERY}`;
 
-    // --- BAŞLANGIÇ: VERİLERİ ÇEK ---
+    // Sanity'den gelen karmaşık metni HTML'e çevirir
+    function blocksToHtml(blocks) {
+        if (!blocks || !Array.isArray(blocks)) return "İçerik boş.";
+        return blocks.map(block => {
+            if (block._type !== 'block' || !block.children) return '';
+            const text = block.children.map(child => child.text).join('');
+            return `<p style="margin-bottom:15px;">${text}</p>`;
+        }).join('');
+    }
+
     async function initBlog() {
         try {
-            // Yükleniyor mesajı göster
-            gridContainer.innerHTML = '<p style="color:#a1a1aa; text-align:center; grid-column: 1/-1;">Veriler veritabanından çekiliyor...</p>';
-            
-            const response = await fetch(URL);
+            gridContainer.innerHTML = '<p style="color:#a1a1aa; text-align:center; grid-column: 1/-1;">Veriler çekiliyor...</p>';
+            const response = await fetch(API_URL);
             const data = await response.json();
 
-            // Sanity verisini senin HTML yapına uyduruyoruz
-            blogPosts = data.result.map(post => {
-                return {
-                    id: post.slug?.current || post._id, 
+            if (data.result) {
+                blogPosts = data.result.map(post => ({
+                    id: post.slug?.current || post._id,
                     title: post.title,
-                    // Kategori şimdilik sabit, sonra dinamik yaparız
-                    category: 'siber-guvenlik', 
-                    catDisplay: 'Genel',
+                    category: 'siber-guvenlik',
+                    catDisplay: 'Siber Güvenlik',
                     date: new Date(post._createdAt).toLocaleDateString('tr-TR'),
                     readTime: post.readTime || '5 dk',
                     icon: post.icon || '📝',
-                    excerpt: post.excerpt || 'Özet bulunamadı.',
-                    // Sanity Body'si şimdilik basit metin olarak gelecek
-                    content: `<p style="font-size:1.1em; margin-bottom:20px;">${post.excerpt}</p><hr><p><i>(Bu içerik Sanity CMS üzerinden dinamik olarak çekilmiştir.)</i></p>` 
-                };
-            });
-
-            // Veri geldikten sonra listeyi oluştur
-            renderList();
-            checkUrl();
-
+                    excerpt: post.excerpt || '',
+                    content: blocksToHtml(post.body)
+                }));
+                renderList();
+                checkUrl();
+            }
         } catch (error) {
-            console.error("Veri çekme hatası:", error);
-            gridContainer.innerHTML = '<p style="color:red; text-align:center; grid-column: 1/-1;">Bağlantı hatası! Adblocker veya internet bağlantını kontrol et.</p>';
+            console.error("Hata:", error);
+            gridContainer.innerHTML = '<p style="color:red; text-align:center;">Veri yükleme başarısız!</p>';
         }
     }
 
-    // --- ARAYÜZ FONKSİYONLARI ---
-
-    // 1. Yazıyı Açma
     function openPost(id) {
         const post = blogPosts.find(p => p.id === id);
         if (!post) return;
 
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.set('yazi', id);
-        window.history.pushState({ path: newUrl.href }, '', newUrl.href);
+        // Tarayıcının kendi URL özelliğini bozmadan adresi güncelliyoruz
+        const currentUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?yazi=" + id;
+        window.history.pushState({ path: currentUrl }, '', currentUrl);
 
         dTitle.textContent = post.title;
         dCategory.textContent = post.catDisplay;
-        dDate.innerHTML = `<i class="fa-regular fa-calendar" style="margin-right:5px"></i> ${post.date}`;
-        dReadTime.innerHTML = `<i class="fa-regular fa-clock" style="margin-right:5px"></i> ${post.readTime}`;
+        dDate.innerHTML = `<i class="fa-regular fa-calendar"></i> ${post.date}`;
+        dReadTime.innerHTML = `<i class="fa-regular fa-clock"></i> ${post.readTime}`;
         dContent.innerHTML = post.content;
 
-        listView.classList.add('fade-out');
-
-        setTimeout(() => {
-            listView.classList.add('hidden');
-            listView.classList.remove('fade-out');
-
-            singleView.classList.remove('hidden');
-            singleView.classList.add('fade-in-start');
-
-            // Scroll başa al
-            window.scrollTo(0, 0);
-            
-            setTimeout(() => {
-                singleView.classList.remove('fade-in-start');
-            }, 50);
-        }, 300);
+        listView.classList.add('hidden');
+        singleView.classList.remove('hidden');
+        window.scrollTo(0, 0);
     }
 
-    // 2. Yazıyı Kapatma
     function closePost() {
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.delete('yazi');
-        window.history.pushState({ path: newUrl.href }, '', newUrl.href);
-
-        singleView.classList.add('fade-out');
-
-        setTimeout(() => {
-            singleView.classList.add('hidden');
-            singleView.classList.remove('fade-out');
-
-            listView.classList.remove('hidden');
-            listView.classList.add('fade-in-start');
-
-            window.scrollTo(0, 0);
-
-            setTimeout(() => {
-                listView.classList.remove('fade-in-start');
-            }, 50);
-        }, 300);
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.pushState({ path: cleanUrl }, '', cleanUrl);
+        singleView.classList.add('hidden');
+        listView.classList.remove('hidden');
+        window.scrollTo(0, 0);
     }
 
-    // 3. Blog Listesini Oluştur
     function renderList() {
         const filtered = blogPosts.filter(p => currentCategory === 'all' || p.category === currentCategory);
-        const totalPages = Math.ceil(filtered.length / cardsPerPage);
-
-        if (currentPage > totalPages) currentPage = 1;
-
         const start = (currentPage - 1) * cardsPerPage;
-        const end = start + cardsPerPage;
-        const paginatedPosts = filtered.slice(start, end);
+        const paginated = filtered.slice(start, start + cardsPerPage);
 
-        if (paginatedPosts.length > 0) {
-            gridContainer.innerHTML = paginatedPosts.map(post => `
-                <article class="blog-card" onclick="openPost('${post.id}')" style="cursor:pointer;">
-                    <div class="blog-image">${post.icon}</div>
-                    <div class="blog-content">
-                        <div class="blog-category-tag">${post.catDisplay}</div>
-                        <h2 class="blog-title">${post.title}</h2>
-                        <p class="blog-excerpt">${post.excerpt}</p>
-                        <div class="blog-meta">
-                            <span>${post.date}</span>
-                            <span>${post.readTime}</span>
-                        </div>
+        gridContainer.innerHTML = paginated.map(post => `
+            <article class="blog-card" onclick="openPost('${post.id}')" style="cursor:pointer;">
+                <div class="blog-image">${post.icon}</div>
+                <div class="blog-content">
+                    <div class="blog-category-tag">${post.catDisplay}</div>
+                    <h2 class="blog-title">${post.title}</h2>
+                    <p class="blog-excerpt">${post.excerpt}</p>
+                    <div class="blog-meta">
+                        <span>${post.date}</span>
+                        <span>${post.readTime}</span>
                     </div>
-                </article>
-            `).join('');
-        } else {
-            gridContainer.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#71717a;">Bu kategoride yazı bulunamadı.</p>';
-        }
-        renderPagination(totalPages);
+                </div>
+            </article>
+        `).join('');
     }
 
-    // 4. Sayfa Değiştirme Animasyonu
-    function changePageWithAnimation(newPage) {
-        const grid = document.getElementById('blog-grid-container');
-        grid.classList.add('grid-fading');
-        setTimeout(() => {
-            currentPage = newPage;
-            renderList();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            grid.classList.remove('grid-fading');
-        }, 300);
-    }
-
-    // 5. Pagination Butonları
-    function renderPagination(totalPages) {
-        if (totalPages <= 1) {
-            paginationContainer.innerHTML = '';
-            return;
-        }
-        let html = `<button class="page-btn" onclick="changePageWithAnimation(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-        for (let i = 1; i <= totalPages; i++) {
-            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePageWithAnimation(${i})">${i}</button>`;
-        }
-        html += `<button class="page-btn" onclick="changePageWithAnimation(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-        paginationContainer.innerHTML = html;
-    }
-
-    // 6. Kategori Filtreleme
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentCategory = btn.dataset.category;
-            changePageWithAnimation(1);
-        });
-    });
-
-    // 7. URL Kontrolü (Sayfa yenilendiğinde detay açılsın diye)
     function checkUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const postId = params.get('yazi');
-        if (postId) {
-            // Veriler yüklendikten sonra kontrol etmeliyiz
-            const post = blogPosts.find(p => p.id === postId);
-            if (post) {
-                openPost(postId);
-            }
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = urlParams.get('yazi');
+        if (postId) openPost(postId);
     }
 
-    window.onpopstate = () => {
-        const params = new URLSearchParams(window.location.search);
-        const postId = params.get('yazi');
-        if (!postId) {
-            singleView.classList.add('hidden');
-            listView.classList.remove('hidden');
-        } else {
-            openPost(postId);
-        }
-    };
-
-    // Scroll to Top
-    const scrollBtn = document.getElementById('scrollToTopBtn');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            scrollBtn.classList.add('visible');
-        } else {
-            scrollBtn.classList.remove('visible');
-        }
-    });
-    scrollBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    // --- SİSTEMİ BAŞLAT --- 
-    initBlog(); // Verileri çek ve siteyi kur
-
+    initBlog();
 </script>
 
 </body>
