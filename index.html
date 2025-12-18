@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Security</title>
+    <link rel="icon" type="image/png" href="pp2.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        #backToTopBtn {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            width: 50px;
+            height: 50px;
+            border: none;
+            outline: none;
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #fff;
+            cursor: pointer;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        #backToTopBtn.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #backToTopBtn:hover {
+            background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+            transform: translateY(-5px);
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f4f4f5;
+            background: #09090b;
+            overflow-x: hidden;
+        }
+
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: #09090b;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 25%);
+            animation: bgShift 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% {
+                background-position: 0% 0%;
+                transform: scale(1);
+            }
+
+            100% {
+                background-position: 10% 10%;
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes shineFlow {
+            0% {
+                background-position: 200% center;
+            }
+
+            100% {
+                background-position: 0% center;
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 1s ease;
+        }
+
+        .reveal-left.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 1s ease;
+        }
+
+        .reveal-right.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* --- BİLEŞENLER --- */
+
+        .glass-card {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.15);
+            transform: translateY(-10px) scale(1.02);
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg,
+                    #ffffff 0%,
+                    #a78bfa 45%,
+                    #ffffff 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shineFlow 3s linear infinite;
+            color: #a78bfa;
+            font-weight: 800;
+        }
+
+        .glitch-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch-wrapper::before,
+        .glitch-wrapper::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.5;
+        }
+
+        .glitch-wrapper::before {
+            color: rgba(255, 255, 255, 0.4);
+            z-index: -1;
+            animation: soft-glitch-1 3s infinite reverse;
+        }
+
+        .glitch-wrapper::after {
+            color: rgba(139, 92, 246, 0.4);
+            z-index: -2;
+            animation: soft-glitch-2 2s infinite reverse;
+        }
+
+        @keyframes soft-glitch-1 {
+            0% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+
+            20% {
+                transform: translate(-2px, 1px);
+                clip-path: inset(10% 0 60% 0);
+            }
+
+            40% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+
+            60% {
+                transform: translate(2px, -1px);
+                clip-path: inset(40% 0 20% 0);
+            }
+
+            80% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+
+            100% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+        }
+
+        @keyframes soft-glitch-2 {
+            0% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+
+            20% {
+                transform: translate(2px, -1px);
+                clip-path: inset(20% 0 50% 0);
+            }
+
+            40% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+
+            60% {
+                transform: translate(-2px, 1px);
+                clip-path: inset(60% 0 10% 0);
+            }
+
+            80% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+
+            100% {
+                transform: translate(0);
+                clip-path: inset(0 0 0 0);
+            }
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+            color: white;
+            padding: 14px 36px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .cta-button.secondary {
+            background: transparent;
+            border: 2px solid rgba(139, 92, 246, 0.5);
+        }
+
+        .cta-button.secondary:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        /* Header */
+        header {
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: white;
+            padding: 2rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #a1a1aa;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #8b5cf6;
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after,
+        .nav-links a.active::after {
+            width: 100%;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #8b5cf6;
+        }
+
+        /* --- SECTIONS --- */
+        .section-container {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            color: #a1a1aa;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .hero-section {
+            min-height: 85vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 100px;
+            position: relative;
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            filter: blur(100px);
+            animation: pulseGlow 8s infinite alternate;
+            z-index: -1;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        .hero-content {
+            max-width: 900px;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #a1a1aa;
+            margin-bottom: 3rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        /* Services */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .service-card {
+            padding: 2.5rem;
+            text-align: left;
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Process Steps */
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            position: relative;
+        }
+
+        .process-steps::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: rgba(139, 92, 246, 0.3);
+            z-index: -1;
+        }
+
+        .step-item {
+            text-align: center;
+            flex: 1;
+            padding: 0 1rem;
+        }
+
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: rgba(9, 9, 11, 0.8);
+            border: 2px solid #8b5cf6;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .step-item:hover .step-number {
+            transform: scale(1.1);
+            border-color: #06b6d4;
+        }
+
+        /* Split Section */
+        .split-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: start;
+        }
+
+        .features-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .feature-icon {
+            color: #06b6d4;
+            font-size: 1.5rem;
+            margin-top: 5px;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .tool-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #a1a1aa;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: default !important;
+        }
+
+        .tool-box:hover {
+            border-color: #8b5cf6;
+            color: white;
+            background: rgba(139, 92, 246, 0.1);
+            transform: translateY(-5px);
+        }
+
+        .tool-box i {
+            font-size: 1.5rem;
+            color: #8b5cf6;
+            margin-bottom: 5px;
+        }
+
+        /* CTA Banner */
+        .cta-banner {
+            max-width: 850px;
+            margin: 8rem auto;
+            padding: 4rem 3rem;
+            text-align: center;
+            background: linear-gradient(to right, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Footer */
+        footer {
+            background: transparent;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: #71717a;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        footer p {
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .social-links a {
+            color: #52525b;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .social-links a:hover {
+            color: #8b5cf6;
+            transform: translateY(-3px);
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .process-steps {
+                flex-direction: column;
+                gap: 2rem;
+            }
+
+            .process-steps::before {
+                display: none;
+            }
+
+            .split-section {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+
+            .tools-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .reveal-left,
+            .reveal-right {
+                transform: translateY(30px);
+            }
+        }
+
+        .service-card {
+            cursor: default !important;
+        }
+
+        .step-item {
+            cursor: default !important;
+        }
+
+        .feature-item {
+            cursor: default !important;
+        }
+
+        .glass-card {
+            transition: all 0.1s ease-out !important;
+        }
+
+        .glass-card:hover {
+            transition: all 0.1s ease-out !important;
+        }
+
+        .tool-box {
+            transition: all 0.1s ease-out !important;
+        }
+
+        .cta-button,
+        .nav-links a {
+            transition: all 0.1s ease-out !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-animation"></div>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="pp2.png" alt="Dark Security"
+                    style="width: 40px; height: 40px; border-radius: 8px; margin-right: 10px; vertical-align: middle;">
+                Dark Security
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Ana Sayfa</a></li>
+                <li><a href="blog.html">Yazılar</a></li>
+                <li><a href="about.html">Hakkımızda</a></li>
+                <li><a href="contact.html">İletişim</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero-section">
+        <div class="hero-glow"></div>
+        <div class="hero-content reveal active">
+            <div style="margin-bottom: 1.5rem;">
+                <span
+                    style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; padding: 8px 16px; border-radius: 30px; border: 1px solid rgba(139, 92, 246, 0.3); font-size: 0.9rem;">
+                    <i class="fa-solid fa-shield-halved"></i> Profesyonel Ofansif Güvenlik
+                </span>
+            </div>
+            <h1 class="hero-title">
+                Gölgedeki Tehditleri <br>
+                <span class="gradient-text" data-text="Aydınlatıyoruz.">Aydınlatıyoruz.</span>
+            </h1>
+            <p class="hero-subtitle">
+                Kurumunuzu siber saldırılara karşı korumak için saldırgan gibi düşünüyoruz. Proaktif siber güvenlik ve
+                sertifikalı penetrasyon testi hizmetleri.
+            </p>
+            <div class="hero-buttons">
+                <a href="contact.html" class="cta-button">
+                    <i class="fa-regular fa-paper-plane"></i> Teklif İste
+                </a>
+                <a href="#hizmetler" class="cta-button secondary">
+                    Hizmetleri İncele
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="hizmetler" class="section-container">
+        <div class="section-header reveal">
+            <h2 class="section-title">Uzmanlık Alanlarımız</h2>
+            <p class="section-subtitle">Sistemlerinizdeki zafiyetleri hackerlardan önce tespit edip kapatıyoruz.</p>
+        </div>
+        <div class="services-grid">
+            <div class="glass-card service-card reveal">
+                <div class="service-icon"><i class="fa-solid fa-globe"></i></div>
+                <h3>Web Uygulama Sızma Testi</h3>
+                <p>Web siteleriniz ve uygulamalarınızdaki (OWASP Top 10 dahil) kritik güvenlik açıklarını tespit ediyor
+                    ve çözüm raporu sunuyoruz.</p>
+            </div>
+            <div class="glass-card service-card reveal" style="transition-delay: 0.2s;">
+                <div class="service-icon"><i class="fa-solid fa-network-wired"></i></div>
+                <h3>Ağ (Network) Sızma Testi</h3>
+                <p>Şirket iç ve dış ağlarınızı tarayarak, yetkisiz erişim noktalarını ve zayıf konfigürasyonları
+                    belirliyoruz.</p>
+            </div>
+            <div class="glass-card service-card reveal" style="transition-delay: 0.4s;">
+                <div class="service-icon"><i class="fa-solid fa-user-secret"></i></div>
+                <h3>Sosyal Mühendislik Testleri</h3>
+                <p>En zayıf halka insandır. Çalışanlarınızın oltalama (phishing) saldırılarına karşı farkındalığını test
+                    ediyoruz.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-container">
+        <div class="section-header reveal">
+            <h2 class="section-title">Nasıl Çalışıyoruz?</h2>
+            <p class="section-subtitle">Şeffaf ve metodolojik bir yaklaşım ile güvenliğinizi sağlıyoruz.</p>
+        </div>
+        <div class="process-steps">
+            <div class="step-item reveal-left">
+                <div class="step-number">1</div>
+                <h3>Kapsam Belirleme</h3>
+                <p>İhtiyaçlarınızı analiz ediyor, test edilecek sistemleri ve kuralları birlikte belirliyoruz.</p>
+            </div>
+            <div class="step-item reveal-left" style="transition-delay: 0.2s;">
+                <div class="step-number">2</div>
+                <h3>Keşif & Manuel Analiz</h3>
+                <p>Otomatik tarama araçlarının hızını, manuel analizin zekasıyla birleştirerek eksiksiz bir güvenlik
+                    taraması yapıyoruz.</p>
+            </div>
+            <div class="step-item reveal-left" style="transition-delay: 0.4s;">
+                <div class="step-number">3</div>
+                <h3>İstismar & Yetki Yükseltme</h3>
+                <p>Bulunan zafiyetleri sisteme zarar vermeden doğruluyor ve ne kadar derine inilebileceğini simüle
+                    ediyoruz.</p>
+            </div>
+            <div class="step-item reveal-left" style="transition-delay: 0.6s;">
+                <div class="step-number">4</div>
+                <h3>Raporlama</h3>
+                <p>Bulguları, risk seviyelerini ve çözüm önerilerini içeren detaylı bir rapor sunuyoruz.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-container split-section">
+        <div class="reveal-left">
+            <h2 class="section-title">Neden Dark Security?</h2>
+            <p class="section-subtitle" style="margin: 0 0 2rem 0; text-align: left;">
+                Uluslararası yetkinliğe sahip sertifikalı uzmanlarımız ve <strong>TSE standartlarında</strong> hizmet
+                anlayışımızla fark yaratıyoruz.
+            </p>
+            <ul class="features-list">
+                <li class="feature-item">
+                    <i class="fa-solid fa-certificate feature-icon"></i>
+                    <div>
+                        <strong>Sertifikalı Uzman Kadro</strong>
+                        <p style="margin-top: 5px; font-size: 0.9rem; color: #a1a1aa;">
+                            Ekibimiz <strong>OSCP, eWPT, CEH</strong> ve <strong>TSE Sızma Testi Uzmanı</strong> gibi
+                            global geçerliliği olan sertifikalara sahiptir.
+                        </p>
+                    </div>
+                </li>
+                <li class="feature-item">
+                    <i class="fa-solid fa-file-contract feature-icon"></i>
+                    <div>
+                        <strong>Regülasyonlara Uyumlu Raporlama</strong>
+                        <p style="margin-top: 5px; font-size: 0.9rem; color: #a1a1aa;">
+                            Raporlarımız <strong>TSE, BDDK ve KVKK</strong> standartlarına uygun formatta, teknik ve
+                            yönetici özetleriyle hazırlanır.
+                        </p>
+                    </div>
+                </li>
+                <li class="feature-item">
+                    <i class="fa-solid fa-handshake feature-icon"></i>
+                    <div>
+                        <strong>%100 Güven ve Gizlilik</strong>
+                        <p style="margin-top: 5px; font-size: 0.9rem; color: #a1a1aa;">
+                            Tüm süreçlerimiz Kurumsal Gizlilik Sözleşmesi (NDA) altında, yasal ve etik sınırlar
+                            içerisinde yürütülür.
+                        </p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="reveal-right">
+            <h2 class="section-title">Teknoloji ve Araçlar</h2>
+            <p class="section-subtitle" style="margin: 0 0 2rem 0;">Sektör standardı profesyonel araçları uzmanlıkla
+                kullanıyoruz.</p>
+            <div class="tools-grid">
+                <div class="tool-box"><i class="fa-brands fa-linux"></i> Kali Linux</div>
+                <div class="tool-box"><i class="fa-solid fa-bug"></i> Metasploit</div>
+                <div class="tool-box"><i class="fa-solid fa-satellite-dish"></i> Nmap</div>
+                <div class="tool-box"><i class="fa-solid fa-cookie-bite"></i> Burp Suite</div>
+                <div class="tool-box"><i class="fa-solid fa-ghost"></i> OWASP ZAP</div>
+                <div class="tool-box"><i class="fa-solid fa-code-branch"></i> Nessus</div>
+                <div class="tool-box"><i class="fa-brands fa-python"></i> Python</div>
+                <div class="tool-box"><i class="fa-solid fa-shield"></i> Wireshark</div>
+                <div class="tool-box"><i class="fa-solid fa-terminal"></i> Bash Script</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-banner glass-card section-container reveal">
+        <h2 class="gradient-text">Güvenliğinizi Şansa Bırakmayın.</h2>
+        <p style="color: #d4d4d8; max-width: 700px; margin: 0 auto 2rem;">
+            Siber tehditler her geçen gün artıyor. Sistemlerinizin ne kadar güvenli olduğunu öğrenmek için bugün bizimle
+            iletişime geçin.
+        </p>
+        <a href="contact.html" class="cta-button" style="font-size: 1.2rem; padding: 16px 40px;">
+            Ücretsiz Ön Görüşme Başlatın <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Dark Security | Tüm hakları saklıdır.</p>
+        <div class="social-links">
+            <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="#"><i class="fa-brands fa-github"></i></a>
+        </div>
+    </footer>
+    <button id="backToTopBtn" title="Yukarı Dön">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+    <script>
+        if (history.scrollRestoration) {
+            history.scrollRestoration = 'manual';
+        }
+        window.scrollTo(0, 0);
+        window.addEventListener('scroll', reveal);
+
+        function reveal() {
+            var reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+
+            for (var i = 0; i < reveals.length; i++) {
+                var windowheight = window.innerHeight;
+                var revealtop = reveals[i].getBoundingClientRect().top;
+                var revealpoint = 150;
+
+                if (revealtop < windowheight - revealpoint) {
+                    reveals[i].classList.add('active');
+                }
+            }
+        }
+
+        reveal();
+        const backToTopBtn = document.getElementById("backToTopBtn");
+
+        window.onscroll = function () {
+            scrollFunction();
+        };
+
+        function scrollFunction() {
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                backToTopBtn.classList.add("show");
+            } else {
+                backToTopBtn.classList.remove("show");
+            }
+        }
+
+        backToTopBtn.addEventListener("click", function () {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    </script>
+</body>
+
+</html>
