@@ -780,7 +780,7 @@
 
         if (paginatedPosts.length > 0) {
             gridContainer.innerHTML = paginatedPosts.map(post => `
-                <article class="blog-card" onclick="openPost('${post.id}')">
+                <article class="blog-card" onclick="openPost('${post.id}')" style="cursor:pointer;">
                     <div class="blog-image">${post.icon}</div>
                     <div class="blog-content">
                         <div class="blog-category-tag">${post.catDisplay}</div>
@@ -794,14 +794,8 @@
                 </article>
             `).join('');
         } else {
-            // Eğer veri henüz gelmediyse veya boşsa
-            if(blogPosts.length === 0) {
-                 // initBlog zaten "yükleniyor" yazıyor, burayı boş bırakabiliriz
-            } else {
-                gridContainer.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#71717a;">Bu kategoride yazı bulunamadı.</p>';
-            }
+            gridContainer.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#71717a;">Bu kategoride yazı bulunamadı.</p>';
         }
-
         renderPagination(totalPages);
     }
 
